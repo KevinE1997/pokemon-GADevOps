@@ -8,7 +8,7 @@ RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 # Copia archivos del sitio web
-COPY web/ /usr/share/nginx/html/
+COPY . /usr/share/nginx/html/
 
 # Expone el puerto que usará Nginx (aunque Heroku lo sobrescribe internamente)
 EXPOSE 8080
