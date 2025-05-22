@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Tarjetitas pokemon 1</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    #controls {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    input, select {
+      padding: 8px;
+      font-size: 16px;
+      margin: 10px;
+    }
+
+    #pokemon-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .pokemon-card {
+      width: 150px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin: 10px;
+      padding: 10px;
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+
+    .pokemon-card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+
+    .pokemon-card img {
+      width: 100px;
+      height: 100px;
+    }
+
+    /* Modal */
+    #modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.5);
+    }
+
+    .modal-content {
+      background-color: #fff;
+      margin: 100px auto;
+      padding: 20px;
+      border-radius: 10px;
+      width: 300px;
+      position: relative;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+
+    .modal-content img {
+      display: block;
+      margin: 0 auto 10px;
+      width: 100px;
+      height: 100px;
+    }
+
+    #close-modal {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .modal-content h2 {
+      text-align: center;
+      text-transform: capitalize;
+    }
+
+    .modal-content p {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>POKEMON</h1>
+
+  <div id="controls">
+    <input type="text" id="search" placeholder="Buscar Pokémon por nombre">
+    <select id="limit">
+      <option value="10">10</option>
+      <option value="15">15</option>
+      <option value="20">20</option>
+      <option value="50">50</option>
+    </select>
+  </div>
+
+  <div id="pokemon-container"></div>
+
+  <!-- Modal -->
+  <div id="modal">
+    <div class="modal-content">
+      <span id="close-modal">&times;</span>
+      <div id="modal-info"></div>
+    </div>
+  </div>
+
+  <script>
+    const container = document.getElementById('pokemon-container');
+    const searchInput = document.getElementById('search');
+    const limitSelect = document.getElementById('limit');
+    const modal = document.getElementById('modal');
+    const modalInfo = document.getElementById('modal-info');
+    const closeModal = document.getElementById('close-modal');
+
+    let allPokemonList = [];
+    let loadedPokemon = [];
+
+    async function loadAllPokemonNames() {
+      const res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=100000');
+      const data = await res.json();
+      allPokemonList = data.results;
+    }
+
+    async function fetchPokemon(limit = 10) {
+      const selected = allPokemonList.slice(0, limit);
+      loadedPokemon = await Promise.all(selected.map(p => fetch(p.url).then(r => r.json())));
+      renderPokemon(loadedPokemon);
+    }
+
+    function renderPokemon(pokemonList) {
+      container.innerHTML = '';
+      pokemonList.forEach(pokemon => {
+        const card = document.createElement('div');
+        card.className = 'pokemon-card';
+        card.innerHTML = `
+          <img src="${pokemon.sprites.front_default}" alt="${pokemon.name}">
+          <p>${pokemon.name}</p>
+        `;
+        card.onclick = () => showModal(pokemon);
+        container.appendChild(card);
+      });
+    }
+
+    function showModal(pokemon) {
+      const types = pokemon.types.map(t => t.type.name).join(', ');
+      const abilities = pokemon.abilities.map(a => a.ability.name).join(', ');
+      const stats = pokemon.stats.map(s => `<strong>${s.stat.name}:</strong> ${s.base_stat}`).join('<br>');
+
+      modalInfo.innerHTML = `
+        <h2>${pokemon.name}</h2>
+        <img src="${pokemon.sprites.front_default}" alt="${pokemon.name}">
+        <p><strong>Altura:</strong> ${pokemon.height}</p>
+        <p><strong>Peso:</strong> ${pokemon.weight}</p>
+        <p><strong>Tipo:</strong> ${types}</p>
+        <p><strong>Habilidades:</strong> ${abilities}</p>
+        <p><strong>Experiencia base:</strong> ${pokemon.base_experience}</p>
+        <p><strong>Estadísticas:</strong><br>${stats}</p>
+      `;
+      modal.style.display = 'block';
+    }
+
+    closeModal.onclick = () => {
+      modal.style.display = 'none';
+    };
+
+    window.onclick = (event) => {
+      if (event.target == modal) {
+        modal.style.display = 'none';
+      }
+    };
+
+    searchInput.addEventListener('input', async () => {
+      const term = searchInput.value.toLowerCase().trim();
+      if (term === '') {
+        renderPokemon(loadedPokemon);
+        return;
+      }
+
+      const match = allPokemonList.find(p => p.name.toLowerCase().includes(term));
+      if (match) {
+        try {
+          const res = await fetch(match.url);
+          const data = await res.json();
+          renderPokemon([data]);
+        } catch (error) {
+          container.innerHTML = `<p>Error al cargar el Pokémon.</p>`;
+        }
+      } else {
+        container.innerHTML = `<p>No se encontró ningún Pokémon con ese nombre.</p>`;
+      }
+    });
+
+    limitSelect.addEventListener('change', () => {
+      fetchPokemon(limitSelect.value);
+    });
+
+    // Inicial
+    (async () => {
+      await loadAllPokemonNames();
+      fetchPokemon(10);
+    })();
+  </script>
+
+</body>
+</html>
