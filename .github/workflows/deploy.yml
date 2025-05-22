@@ -22,6 +22,10 @@ jobs:
       - name: Subir imagen a Heroku
         run: docker push registry.heroku.com/${{ secrets.HEROKU_APP_NAME }}/web
 
+      - name: Instalar la CLI de Heroku
+        run: |
+          curl https://cli-assets.heroku.com/install.sh | sh
+
       - name: Liberar la imagen en Heroku
         run: |
           heroku container:release web --app ${{ secrets.HEROKU_APP_NAME }}
