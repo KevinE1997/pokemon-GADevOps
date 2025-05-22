@@ -1,17 +1,29 @@
-name: Publish To Heroku With Docker
+name: Deploy to Heroku
+
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
-  publish:
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Dir
-        uses: actions/checkout@v2
-      - name: Heroku Deployment
-        uses: ElayGelbart/Heroku-Auto-Deployment@v1.0.6
-        with:
-          herokuApiKey: ${{ secrets.HEROKU_API_KEY}}
-          herokuAppName: ${{ secrets.HEROKU_APP_NAME}}
-          useDocker: true
+      - name: Clonar repositorio
+        uses: actions/checkout@v3
+
+      - name: Login a Heroku Container Registry
+        run: echo "${{ secrets.HEROKU_API_KEY }}" | docker login --username=_ --password-stdin registry.heroku.com
+
+      - name: Construir la imagen Docker
+        run: docker build -t registry.heroku.com/${{ secrets.HEROKU_APP_NAME }}/web .
+
+      - name: Subir imagen a Heroku
+        run: docker push registry.heroku.com/${{ secrets.HEROKU_APP_NAME }}/web
+
+      - name: Liberar la imagen en Heroku
+        run: |
+          heroku container:release web --app ${{ secrets.HEROKU_APP_NAME }}
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
