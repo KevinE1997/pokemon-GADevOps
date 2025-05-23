@@ -3,35 +3,35 @@ name: Deploy a Heroku Docker App
 on:
   push:
     branches:
-      - main  # Puedes cambiar esto si usas otra rama
+      - main 
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Clonar el repositorio
+      - name: Clone the repository
         uses: actions/checkout@v3
 
-      - name: Instalar la CLI de Heroku
+      - name: Install the Heroku CLI
         run: curl https://cli-assets.heroku.com/install.sh | sh
 
-      - name: Iniciar sesión en Heroku Container Registry
+      - name: Log in to the Heroku Container Registry
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: echo $HEROKU_API_KEY | docker login --username=_ --password-stdin registry.heroku.com
 
-      - name: Establecer stack de la app como 'container'
+      - name: Set the app's stack to 'container'
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: heroku stack:set container --app pokemon-ga-devops
 
-      - name: Construir y subir imagen Docker a Heroku
+      - name: Build and push the Docker image to Heroku
         run: |
           docker build -t registry.heroku.com/pokemon-ga-devops/web .
           docker push registry.heroku.com/pokemon-ga-devops/web
 
-      - name: Liberar el contenedor en Heroku
+      - name: Release the container on Heroku
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: heroku container:release web --app pokemon-ga-devops
